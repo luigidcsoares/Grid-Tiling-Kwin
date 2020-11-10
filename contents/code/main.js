@@ -79,7 +79,19 @@ var Parameters =
   },
   minSpaces: Algorithm.createMinSpaces(readConfig('minSpaceNames', 'texstudio, inkscape, krita, gimp, designer, creator, kdenlive, kdevelop, chromium, kate, spotify').toString(), readConfig('minSpaceValues', '1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2').toString()),
   ignored: {
-    names: Algorithm.trimSplitString('ksmserver, krunner, lattedock, Plasma, plasma, plasma-desktop, plasmashell, plugin-container, '.concat(readConfig('ignoredNames', 'wine, yakuake').toString())),
+    // names: Algorithm.trimSplitString('ksmserver, krunner, lattedock, Plasma, plasma, plasma-desktop, plasmashell, plugin-container, '.concat(readConfig('ignoredNames', 'wine, yakuake').toString())),
+    names: {
+        // Default regex (i.e. user has no control over it)
+        def: new RegExp(
+            '^(?=.*(ksmserver|krunner|lattedock|plasma|plugin-container))(.*)$',
+            'i'
+        ),
+        // User-defined regexp, with a default to ignore yakuake.
+        userdef: new RegExp(
+            readConfig('ignoredNames', '^(?=.*(wine|yakuake))(.*)$'),
+            'i'
+        )
+    },
     captions: Algorithm.trimSplitString(readConfig('ignoredCaptions', 'Trace Bitmap (Shift+Alt+B), Document Properties (Shift+Ctrl+D)').toString())
   }
 };
@@ -682,11 +694,19 @@ var Client =
   {
     if (client.specialWindow || client.dialog || Parameters.ignored.captions.indexOf(client.caption.toString()) !== -1)
       return true;
-    for (var i = 0; i < Parameters.ignored.names.length; i++)
-    {
-      if (client.resourceClass.toString().indexOf(Parameters.ignored.names[i]) !== -1 || client.resourceName.toString().indexOf(Parameters.ignored.names[i]) !== -1)
+    // for (var i = 0; i < Parameters.ignored.names.length; i++)
+    // {
+      // if (client.resourceClass.toString().indexOf(Parameters.ignored.names[i]) !== -1 || client.resourceName.toString().indexOf(Parameters.ignored.names[i]) !== -1)
+      //   return true;
+    // }
+    
+    var cls = client.resourceClass.toString();
+    var name = client.resourceName.toString();
+    var def = Parameters.ignored.names.def;
+    var userdef = Parameters.ignored.names.userdef;
+
+    if (def.test(cls) || userdef.test(cls) || def.test(name) || userdef.test(name))
         return true;
-    }
     return false;
   },
   addMinSpace: function(client)
